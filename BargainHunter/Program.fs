@@ -1,6 +1,4 @@
-﻿// Learn more about F# at http://fsharp.org
-// See the 'F# Tutorial' project for more help.
-open System
+﻿open System
 open System.IO
 open Domain
 open Slack
@@ -39,7 +37,6 @@ let publishDeals deals hook =
      |> Seq.map (fun d -> 
                   sprintf "<%s|%s>\nListed at %O for £%O" d.Link d.Title d.Listed d.Price)
      |> Seq.fold (fun state deal -> state + deal + "\n\n") ""
-     |> createJsonPayload "Hunter" ":moneybag:"
      |> postToSlack hook
 
     printfn "Slack response: %s" resp
@@ -52,9 +49,10 @@ let findDeals key search hook =
 
     let deals = getDeals key search lastRun
 
-    printDeals deals
-
-    publishDeals deals hook
+    match deals.Length with
+    | 0 -> printfn "No new deals found"
+    | _ -> printDeals deals
+           publishDeals deals hook
 
     File.WriteAllText(LastRunFile, string <| dateTimeToUnixTime currentRun)
 
@@ -64,5 +62,7 @@ let main argv =
     | Some(key, search, hook) -> findDeals key search hook
     | _ -> printUsage ()
 
+#if DEBUG
     Console.ReadKey() |> ignore
+#endif
     0 // return an integer exit code
