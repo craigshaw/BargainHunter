@@ -18,14 +18,11 @@ let printDeals deals =
         printfn "%O" i.Price
         printfn "%O\n" i.Listed)
 
-let dateTimeToUnixTime (dt:DateTime) =
-    let epoch = new System.DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-    let span = (dt.ToLocalTime() - epoch)
-    int span.TotalSeconds
+let unixTimeToDateTime (unixTime:int) =
+    DateTimeOffset.FromUnixTimeSeconds(int64 unixTime).DateTime.ToLocalTime()
 
-let unixTimeToDateTime (ut:int) =
-    let epoch = new System.DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-    epoch.AddSeconds(float ut).ToLocalTime()
+let dateTimeToUnixTime (dt:DateTime) =
+    DateTimeOffset(dt).ToUnixTimeSeconds() |> int
 
 let buildSearchUri (searchString:string) key page = 
     sprintf 
@@ -35,12 +32,12 @@ let buildSearchUri (searchString:string) key page =
         <| HttpUtility.UrlEncode(searchString)
 
 let isNewerThan baseTime timestamp = 
-    DateTime.Compare((unixTimeToDateTime timestamp), baseTime) > 0
+    timestamp > baseTime
 
 let isOlderThan baseTime timestamp = 
     not <| isNewerThan baseTime timestamp
 
-let (|RelevantDeal|_|) (lastSearchTime:DateTime, deal:HUKDProvider.Item) = 
+let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item) = 
     if deal.Timestamp |> isNewerThan lastSearchTime &&
         deal.Category.Name <> "Gaming" &&
         match deal.Price with 

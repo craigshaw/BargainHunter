@@ -20,14 +20,14 @@ let printUsage () =
     printfn "Usage:\n%s.exe <HUKD Key> <Search Term> <Publish Uri>" AppName
 
 let printHeader lastRun search key = 
-    printfn "%s\nLast run: %O\nSearching for '%s' with HUKD key %s\n" ApplicationName lastRun search key
+    printfn "%s\nLast run: %O\nSearching for '%s' with HUKD key %s\n" ApplicationName (unixTimeToDateTime lastRun) search key
 
 let OneWeekAgo =
-    DateTime.Now.AddDays(-7.0)
+    DateTime.Now.AddDays(-7.0) |> dateTimeToUnixTime
 
 let getLastRunTime = 
     match File.Exists(LastRunFile) with
-    | true -> File.ReadAllText(LastRunFile) |> int |> unixTimeToDateTime
+    | true -> File.ReadAllText(LastRunFile) |> int
     | _ -> OneWeekAgo
 
 // todo put this behind a mailboxprocessor?
