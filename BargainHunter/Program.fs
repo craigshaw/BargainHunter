@@ -2,9 +2,10 @@
 open System.IO
 open Domain
 open Slack
+open Lego
 
 let LastRunFile = "last"
-let Version = "0.1.0"
+let Version = "0.2.0"
 let AppName = "BargainHunter"
 
 let ApplicationName =
@@ -35,7 +36,7 @@ let publishDeals deals hook =
     let resp = 
      deals 
      |> Seq.map (fun d -> 
-                  sprintf "<%s|%s>\nListed at %O for £%O" d.Link d.Title d.Listed d.Price)
+                  sprintf "<%s|%s>\nListed at %O for £%O\n%s" d.Deal.Link d.Deal.Title d.Deal.Listed d.Deal.Price <| extractManufacturerCode d.ManufacturerCode)
      |> Seq.fold (fun state deal -> state + deal + "\n\n") ""
      |> postToSlack hook
 
@@ -47,12 +48,13 @@ let findDeals key search hook =
 
     printHeader lastRun search key
 
-    let deals = getDeals key search lastRun
+    let deals = getDeals key search lastRun legoFilter
 
     match deals.Length with
     | 0 -> printfn "No new deals found"
-    | _ -> printDeals deals
-           publishDeals deals hook
+    | _ -> let legoDeals = identifyProducts deals
+           printLegoDeals legoDeals
+           publishDeals legoDeals hook
 
     File.WriteAllText(LastRunFile, string <| dateTimeToUnixTime currentRun)
 

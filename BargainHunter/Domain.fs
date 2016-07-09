@@ -7,7 +7,7 @@ open FSharp.Data
 
 type HUKDProvider = JsonProvider<"Data/example.json">
 
-type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string }
+type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string; }
 
 let printDeals deals =
     deals 
@@ -37,23 +37,20 @@ let isNewerThan baseTime timestamp =
 let isOlderThan baseTime timestamp = 
     not <| isNewerThan baseTime timestamp
 
-let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item) = 
+let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item, filter:HUKDProvider.Item -> bool) = 
     if deal.Timestamp |> isNewerThan lastSearchTime &&
-        deal.Category.Name <> "Gaming" &&
-        match deal.Price with 
-        | Some _ -> true 
-        | None -> false
+        filter deal
     then
         Some()
     else
         None
 
-let getDeals key search lastSearchTime = 
+let getDeals key search lastSearchTime filter = 
     let rec loop deals currentPage = 
         let allDeals = HUKDProvider.Load(buildSearchUri search key currentPage)
         let relevantDeals = allDeals.Deals.Items 
                             |> Seq.filter (fun i -> 
-                                            match lastSearchTime, i with
+                                            match lastSearchTime, i, filter with
                                             | RelevantDeal -> true
                                             | _ -> false)
                             |> Seq.map (fun i -> 
@@ -61,7 +58,7 @@ let getDeals key search lastSearchTime =
                                             Link = i.DealLink; 
                                             Price = Option.get i.Price; 
                                             Listed = unixTimeToDateTime i.Timestamp;
-                                            Category = i.Category.Name })
+                                            Category = i.Category.Name;})
                             |> Seq.toList
                             |> List.append deals
 
