@@ -5,7 +5,7 @@ open Slack
 open Lego
 
 let LastRunFile = "last"
-let Version = "0.2.0"
+let Version = "0.3.0"
 let AppName = "BargainHunter"
 
 let ApplicationName =
@@ -32,15 +32,17 @@ let getLastRunTime =
     | _ -> OneWeekAgo
 
 // todo put this behind a mailboxprocessor?
-let publishDeals deals hook =
+let publishDeals deals hook dealMapper =
     let resp = 
      deals 
-     |> Seq.map (fun d -> 
-                  sprintf "<%s|%s>\nListed at %O for £%O\n%s" d.Deal.Link d.Deal.Title d.Deal.Listed d.Deal.Price <| extractManufacturerCode d.ManufacturerCode)
+     |> Seq.map dealMapper
      |> Seq.fold (fun state deal -> state + deal + "\n\n") ""
      |> postToSlack hook
 
     printfn "Slack response: %s" resp
+
+let printDeals deals dealPrinter =
+    deals |> Seq.iter (fun d -> dealPrinter d)
 
 let findDeals key search hook =
     let lastRun = getLastRunTime
@@ -48,13 +50,12 @@ let findDeals key search hook =
 
     printHeader lastRun search key
 
-    let deals = getDeals key search lastRun legoFilter
+    let deals = getDeals key search lastRun legoFilter legoMap
 
     match deals.Length with
     | 0 -> printfn "No new deals found"
-    | _ -> let legoDeals = identifyProducts deals
-           printLegoDeals legoDeals
-           publishDeals legoDeals hook
+    | _ -> printDeals deals legoDealPrinter
+           publishDeals deals hook legoDealPublisherMap
 
     File.WriteAllText(LastRunFile, string <| dateTimeToUnixTime currentRun)
 

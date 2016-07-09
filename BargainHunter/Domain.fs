@@ -9,15 +9,6 @@ type HUKDProvider = JsonProvider<"Data/example.json">
 
 type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string; }
 
-let printDeals deals =
-    deals 
-    |> Seq.iter (fun i -> 
-        printfn "%s" i.Title
-        printfn "%s" i.Category
-        printfn "%s" i.Link
-        printfn "%O" i.Price
-        printfn "%O\n" i.Listed)
-
 let unixTimeToDateTime (unixTime:int) =
     DateTimeOffset.FromUnixTimeSeconds(int64 unixTime).DateTime.ToLocalTime()
 
@@ -38,14 +29,12 @@ let isOlderThan baseTime timestamp =
     not <| isNewerThan baseTime timestamp
 
 let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item, filter:HUKDProvider.Item -> bool) = 
-    if deal.Timestamp |> isNewerThan lastSearchTime &&
-        filter deal
-    then
+    if deal.Timestamp |> isNewerThan lastSearchTime && filter deal then
         Some()
     else
         None
 
-let getDeals key search lastSearchTime filter = 
+let getDeals key search lastSearchTime filter map = 
     let rec loop deals currentPage = 
         let allDeals = HUKDProvider.Load(buildSearchUri search key currentPage)
         let relevantDeals = allDeals.Deals.Items 
@@ -53,12 +42,7 @@ let getDeals key search lastSearchTime filter =
                                             match lastSearchTime, i, filter with
                                             | RelevantDeal -> true
                                             | _ -> false)
-                            |> Seq.map (fun i -> 
-                                            {Title = i.Title; 
-                                            Link = i.DealLink; 
-                                            Price = Option.get i.Price; 
-                                            Listed = unixTimeToDateTime i.Timestamp;
-                                            Category = i.Category.Name;})
+                            |> Seq.map map 
                             |> Seq.toList
                             |> List.append deals
 
