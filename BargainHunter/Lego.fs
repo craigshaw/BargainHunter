@@ -5,9 +5,15 @@ open System.Text.RegularExpressions
 
 type LegoDeal = {Deal: Deal; ManufacturerCode: string list}
 
+let BotName = "BrickHunter"
+let BotIcon = ":moneybag:"
+
 let manufacturerCodeLocator = Regex(@"\b(10|11|21|30|31|40|41|42|44|45|60|66|70|71|75|76|79)\d{3}\b", RegexOptions.Compiled);
 
-let legoDealPrinter deal =
+let getPublicationIdentity =
+    (BotName, BotIcon)
+
+let writeToConsole deal =
     printfn "%s" deal.Deal.Title
     printfn "%s" deal.Deal.Category
     printfn "%s" deal.Deal.Link
@@ -30,13 +36,13 @@ let (|ManufacturerCode|_|) (dealText:string) =
     else 
         None
 
-let legoFilter (deal:HUKDProvider.Item) = 
+let dealFilter (deal:HUKDProvider.Item) = 
     deal.Category.Name <> "Gaming" &&
     match deal.Price with 
     | Some _ -> true 
     | None -> false
 
-let legoMap (deal:HUKDProvider.Item) =
+let dealMapper (deal:HUKDProvider.Item) =
     {LegoDeal.Deal = {Title =deal.Title; 
                       Link =deal.DealLink; 
                       Price = Option.get deal.Price; 
@@ -46,7 +52,7 @@ let legoMap (deal:HUKDProvider.Item) =
                                 | ManufacturerCode code -> code
                                 | _ -> []}
 
-let legoDealPublisherMap deal = 
+let formatForPublication deal = 
     sprintf "<%s|%s>\nListed at %O for £%O\n%s" 
      deal.Deal.Link 
      deal.Deal.Title 

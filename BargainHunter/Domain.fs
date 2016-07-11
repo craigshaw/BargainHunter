@@ -34,7 +34,7 @@ let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item, filter:HUKDP
     else
         None
 
-let getDeals key search lastSearchTime filter map = 
+let getDeals filter map key search lastSearchTime = 
     let rec loop deals currentPage = 
         let allDeals = HUKDProvider.Load(buildSearchUri search key currentPage)
         let relevantDeals = allDeals.Deals.Items 
