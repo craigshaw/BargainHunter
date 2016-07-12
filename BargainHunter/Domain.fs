@@ -5,15 +5,26 @@ open System.IO
 open System.Web
 open FSharp.Data
 
-type HUKDProvider = JsonProvider<"Data/example.json">
+type Domain =
+| Lego
+| Gaming
 
-type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string; }
+type HUKDProvider = JsonProvider<"Data/example.json">
 
 let unixTimeToDateTime (unixTime:int) =
     DateTimeOffset.FromUnixTimeSeconds(int64 unixTime).DateTime.ToLocalTime()
 
 let dateTimeToUnixTime (dt:DateTime) =
     DateTimeOffset(dt).ToUnixTimeSeconds() |> int
+
+
+let (|SupportedDealDomain|_|) arg =
+    if String.Compare("lego", arg, StringComparison.OrdinalIgnoreCase) = 0 then
+        Some(Lego)
+    else if String.Compare("gaming", arg, StringComparison.OrdinalIgnoreCase) = 0 then
+        Some(Gaming)
+    else
+        None
 
 let buildSearchUri (searchString:string) key page = 
     sprintf 
@@ -34,7 +45,7 @@ let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item, filter:HUKDP
     else
         None
 
-let getDeals filter map key search lastSearchTime = 
+let getDeals filter key search lastSearchTime = 
     let rec loop deals currentPage = 
         let allDeals = HUKDProvider.Load(buildSearchUri search key currentPage)
         let relevantDeals = allDeals.Deals.Items 
@@ -42,7 +53,6 @@ let getDeals filter map key search lastSearchTime =
                                             match lastSearchTime, i, filter with
                                             | RelevantDeal -> true
                                             | _ -> false)
-                            |> Seq.map map 
                             |> Seq.toList
                             |> List.append deals
 

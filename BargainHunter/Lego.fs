@@ -3,8 +3,6 @@
 open Domain
 open System.Text.RegularExpressions
 
-type LegoDeal = {Deal: Deal; ManufacturerCode: string list}
-
 let BotName = "BrickHunter"
 let BotIcon = ":moneybag:"
 
@@ -12,21 +10,6 @@ let manufacturerCodeLocator = Regex(@"\b(10|11|21|30|31|40|41|42|44|45|60|66|70|
 
 let getPublicationIdentity =
     (BotName, BotIcon)
-
-let writeToConsole deal =
-    printfn "%s" deal.Deal.Title
-    printfn "%s" deal.Deal.Category
-    printfn "%s" deal.Deal.Link
-    printfn "%O" deal.Deal.Price
-    printfn "%O" deal.Deal.Listed
-    printfn "%O" deal.ManufacturerCode
-
-let extractManufacturerCode codes =
-    sprintf "Product Code: %s" <|
-        match codes with
-        | (fst :: []) -> fst
-        | (fst :: rst) -> sprintf "(%s)" <| String.concat "," codes 
-        | _ -> "Unknown"
 
 let (|ManufacturerCode|_|) (dealText:string) =
     let codes = manufacturerCodeLocator.Matches(dealText)
@@ -36,26 +19,27 @@ let (|ManufacturerCode|_|) (dealText:string) =
     else 
         None
 
+let extractManufacturerCode (deal:HUKDProvider.Item) =
+    let manufacturerCodes = match deal.Title with
+                            | ManufacturerCode codes -> codes
+                            | _ -> [] 
+
+    sprintf "Product Code: %s" <|
+        match manufacturerCodes with
+        | (fst :: []) -> fst
+        | (fst :: rst) -> sprintf "(%s)" <| String.concat "," manufacturerCodes 
+        | _ -> "Unknown"
+
 let dealFilter (deal:HUKDProvider.Item) = 
     deal.Category.Name <> "Gaming" &&
     match deal.Price with 
     | Some _ -> true 
     | None -> false
 
-let dealMapper (deal:HUKDProvider.Item) =
-    {LegoDeal.Deal = {Title =deal.Title; 
-                      Link =deal.DealLink; 
-                      Price = Option.get deal.Price; 
-                      Listed = unixTimeToDateTime deal.Timestamp;
-                      Category = deal.Category.Name;};
-    LegoDeal.ManufacturerCode = match deal.Title with
-                                | ManufacturerCode code -> code
-                                | _ -> []}
-
-let formatForPublication deal = 
+let formatForPublication (deal:HUKDProvider.Item) = 
     sprintf "<%s|%s>\nListed at %O for £%O\n%s" 
-     deal.Deal.Link 
-     deal.Deal.Title 
-     deal.Deal.Listed 
-     deal.Deal.Price 
-     <| extractManufacturerCode deal.ManufacturerCode
+     deal.DealLink 
+     deal.Title 
+     (unixTimeToDateTime deal.Timestamp)
+     (Option.get deal.Price)
+     <| extractManufacturerCode deal
