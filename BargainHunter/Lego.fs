@@ -41,5 +41,7 @@ let formatForPublication (deal:HUKDProvider.Item) =
      deal.DealLink 
      deal.Title 
      (unixTimeToDateTime deal.Timestamp)
-     (Option.get deal.Price)
+     (match deal.Price with
+      | Some price -> price
+      | None -> 0.0m)
      <| extractManufacturerCode deal
