@@ -7,9 +7,12 @@ open FSharp.Data
 
 type Domain =
 | Lego
-| Gaming
+//| Gaming
 
 type HUKDProvider = JsonProvider<"Data/example.json">
+type NolongaProvider = JsonProvider<"Data/nolonga.json">
+
+type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string; ManufacturerCode: string list; AveragePrice: decimal option }
 
 let unixTimeToDateTime (unixTime:int) =
     DateTimeOffset.FromUnixTimeSeconds(int64 unixTime).DateTime.ToLocalTime()
@@ -21,8 +24,8 @@ let dateTimeToUnixTime (dt:DateTime) =
 let (|SupportedDealDomain|_|) arg =
     if String.Compare("lego", arg, StringComparison.OrdinalIgnoreCase) = 0 then
         Some(Lego)
-    else if String.Compare("gaming", arg, StringComparison.OrdinalIgnoreCase) = 0 then
-        Some(Gaming)
+//    else if String.Compare("gaming", arg, StringComparison.OrdinalIgnoreCase) = 0 then
+//        Some(Gaming)
     else
         None
 
@@ -45,7 +48,7 @@ let (|RelevantDeal|_|) (lastSearchTime:int, deal:HUKDProvider.Item, filter:HUKDP
     else
         None
 
-let getDeals filter key search lastSearchTime = 
+let getDeals filter codeResolver priceResolver key search lastSearchTime = 
     let rec loop deals currentPage = 
         let allDeals = HUKDProvider.Load(buildSearchUri search key currentPage)
         let relevantDeals = allDeals.Deals.Items 
@@ -53,6 +56,16 @@ let getDeals filter key search lastSearchTime =
                                             match lastSearchTime, i, filter with
                                             | RelevantDeal -> true
                                             | _ -> false)
+                            |> Seq.map (fun i -> 
+                                            {Title = i.Title; 
+                                            Link = i.DealLink; 
+                                            Price = Option.get i.Price; // todo pattern match this
+                                            Listed = unixTimeToDateTime i.Timestamp;
+                                            Category = i.Category.Name;
+                                            ManufacturerCode = [];
+                                            AveragePrice = None})
+                            |> Seq.map (fun i -> codeResolver i)
+                            |> Seq.map (fun i -> priceResolver i)
                             |> Seq.toList
                             |> List.append deals
 

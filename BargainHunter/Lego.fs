@@ -19,16 +19,25 @@ let (|ManufacturerCode|_|) (dealText:string) =
     else 
         None
 
-let extractManufacturerCode (deal:HUKDProvider.Item) =
-    let manufacturerCodes = match deal.Title with
-                            | ManufacturerCode codes -> codes
-                            | _ -> [] 
+let manufacturerCodeResolver deal =
+    let codes =
+     match deal.Title with
+     | ManufacturerCode codes -> codes
+     | _ -> []
 
-    sprintf "Product Code: %s" <|
-        match manufacturerCodes with
-        | (fst :: []) -> fst
-        | (fst :: rst) -> sprintf "(%s)" <| String.concat "," manufacturerCodes 
-        | _ -> "Unknown"
+    {deal with ManufacturerCode = codes}
+
+let priceResolver deal = 
+    let averagePrice = 
+     match deal.ManufacturerCode with
+     | (fst :: []) -> 
+                    try
+                      let priceHistory = NolongaProvider.Load(sprintf "http://localhost:53346/Api/PriceHistory/%s" fst)
+                      Some(priceHistory.AverageSalePrice)
+                    with _ -> None
+     | _ -> None
+
+    {deal with AveragePrice = averagePrice}
 
 let dealFilter (deal:HUKDProvider.Item) = 
     deal.Category.Name <> "Gaming" &&
@@ -36,12 +45,16 @@ let dealFilter (deal:HUKDProvider.Item) =
     | Some _ -> true 
     | None -> false
 
-let formatForPublication (deal:HUKDProvider.Item) = 
-    sprintf "<%s|%s>\nListed at %O for £%O\n%s" 
-     deal.DealLink 
+let formatForPublication deal= 
+    sprintf "<%s|%s>\nListed at %O for £%O\n%s\n%s" 
+     deal.Link
      deal.Title 
-     (unixTimeToDateTime deal.Timestamp)
-     (match deal.Price with
-      | Some price -> price
-      | None -> 0.0m)
-     <| extractManufacturerCode deal
+     deal.Listed
+     deal.Price
+     (match deal.ManufacturerCode with
+      | (fst :: []) -> fst
+      | (fst :: rst) -> sprintf "(%s)" <| String.concat "," deal.ManufacturerCode 
+      | _ -> "Unknown")
+     (match deal.AveragePrice with
+      | Some average -> sprintf "The average price for this on Nolonga is currently £%.2f" average
+      | None -> "")

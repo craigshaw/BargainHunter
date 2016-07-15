@@ -4,7 +4,7 @@ open Domain
 open Slack
 open Lego
 
-let Version = "0.4.0"
+let Version = "0.5.0"
 let AppName = "BargainHunter"
 
 let ApplicationName =
@@ -45,10 +45,10 @@ let publishDeals publicationFormatter publicationIdentity deals hook =
 let bootstrap domain =
     // Partially apply the resolver and publisher functions
     match domain with
-    | Lego -> (getDeals Lego.dealFilter,
+    | Lego -> (getDeals Lego.dealFilter Lego.manufacturerCodeResolver Lego.priceResolver,
                publishDeals Lego.formatForPublication Lego.getPublicationIdentity)
-    | Gaming -> (getDeals Gaming.dealFilter,
-                 publishDeals Gaming.formatForPublication Gaming.getPublicationIdentity)
+//    | Gaming -> (getDeals Gaming.dealFilter,
+//                 publishDeals Gaming.formatForPublication Gaming.getPublicationIdentity)
 
 let findDeals key search hook domain lastRunFile =
     let getDeals', publishDeals' = bootstrap domain
