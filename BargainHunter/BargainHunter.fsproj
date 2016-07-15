@@ -58,6 +58,9 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="Time.fs" />
+    <Compile Include="Hukd.fs" />
+    <Compile Include="Nolonga.fs" />
     <Compile Include="Lego.fs" />
     <Compile Include="Gaming.fs" />
     <Compile Include="Slack.fs" />

@@ -1,6 +1,7 @@
 ﻿module Lego
 
 open Domain
+open Nolonga
 open System.Text.RegularExpressions
 
 let BotName = "BrickHunter"
@@ -11,7 +12,7 @@ let manufacturerCodeLocator = Regex(@"\b(10|11|21|30|31|40|41|42|44|45|60|66|70|
 let getPublicationIdentity =
     (BotName, BotIcon)
 
-let (|ManufacturerCode|_|) (dealText:string) =
+let (|ManufacturerCode|_|) dealText =
     let codes = manufacturerCodeLocator.Matches(dealText)
 
     if codes.Count > 0 then 
@@ -20,24 +21,17 @@ let (|ManufacturerCode|_|) (dealText:string) =
         None
 
 let manufacturerCodeResolver deal =
-    let codes =
-     match deal.Title with
-     | ManufacturerCode codes -> codes
-     | _ -> []
-
-    {deal with ManufacturerCode = codes}
+    {deal with ManufacturerCode = 
+               match deal.Title with
+               | ManufacturerCode codes -> codes
+               | _ -> []}
 
 let priceResolver deal = 
-    let averagePrice = 
-     match deal.ManufacturerCode with
-     | (fst :: []) -> 
-                    try
-                      let priceHistory = NolongaProvider.Load(sprintf "http://www.nolonga.com/Api/PriceHistory/%s" fst)
-                      Some(priceHistory)
-                    with _ -> None
-     | _ -> None
-
-    {deal with PriceDetails = averagePrice}
+    // Only interested in the case where a single product code has been identified
+    {deal with PriceDetails = 
+               match deal.ManufacturerCode with
+               | (fst :: []) -> getProductPriceHistory fst
+               | _ -> None}
 
 let dealFilter (deal:HUKDProvider.Item) = 
     deal.Category.Name <> "Gaming" &&
@@ -46,16 +40,21 @@ let dealFilter (deal:HUKDProvider.Item) =
     | None -> false
 
 let percentageToSavingText =  function
-    | n when n < 0.0m -> "above" | _ -> "below"
+    | n when n < 0.0m -> "more" | _ -> "less"
+
+let averagePriceText productid avgPrice =
+    sprintf "The average price for this on <http://www.nolonga.com/product/%d|Nolonga.com> is currently £%.2f" 
+            productid avgPrice
+
+let relativePercentageText percentageSaving = 
+    sprintf "That's %.2f%% %s than the average" <| abs percentageSaving <| percentageToSavingText percentageSaving
 
 let addPriceInfo deal = 
     match deal.PriceDetails with
     | Some details -> let percentageSaving = (1.0m - (deal.Price / details.PriceStats.AverageSalePrice)) * 100.0m
                       sprintf "%s\n%s"
-                         (sprintf "The average price for this on <http://www.nolonga.com/product/%d|Nolonga.com> is currently £%.2f" 
-                                 details.ProductId
-                                 details.PriceStats.AverageSalePrice)
-                         (sprintf "That's %.2f%% %s current prices" (abs percentageSaving) (percentageToSavingText percentageSaving))
+                       <| averagePriceText details.ProductId details.PriceStats.AverageSalePrice
+                       <| relativePercentageText percentageSaving
     | None -> match deal.ManufacturerCode with
               | (fst :: []) -> sprintf "There is no record for this product (%s) on <http://www.nolonga.com|Nolonga.com>" fst
               | _ -> ""
