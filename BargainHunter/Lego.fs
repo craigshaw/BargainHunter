@@ -32,12 +32,12 @@ let priceResolver deal =
      match deal.ManufacturerCode with
      | (fst :: []) -> 
                     try
-                      let priceHistory = NolongaProvider.Load(sprintf "http://localhost:53346/Api/PriceHistory/%s" fst)
-                      Some(priceHistory.AverageSalePrice)
+                      let priceHistory = NolongaProvider.Load(sprintf "http://www.nolonga.com/Api/PriceHistory/%s" fst)
+                      Some(priceHistory)
                     with _ -> None
      | _ -> None
 
-    {deal with AveragePrice = averagePrice}
+    {deal with PriceDetails = averagePrice}
 
 let dealFilter (deal:HUKDProvider.Item) = 
     deal.Category.Name <> "Gaming" &&
@@ -45,16 +45,25 @@ let dealFilter (deal:HUKDProvider.Item) =
     | Some _ -> true 
     | None -> false
 
+let percentageToSavingText =  function
+    | n when n < 0.0m -> "above" | _ -> "below"
+
+let addPriceInfo deal = 
+    match deal.PriceDetails with
+    | Some details -> let percentageSaving = (1.0m - (deal.Price / details.PriceStats.AverageSalePrice)) * 100.0m
+                      sprintf "%s\n%s"
+                         (sprintf "The average price for this on <http://www.nolonga.com/product/%d|Nolonga.com> is currently £%.2f" 
+                                 details.ProductId
+                                 details.PriceStats.AverageSalePrice)
+                         (sprintf "That's %.2f%% %s current prices" (abs percentageSaving) (percentageToSavingText percentageSaving))
+    | None -> match deal.ManufacturerCode with
+              | (fst :: []) -> sprintf "There is no record for this product (%s) on <http://www.nolonga.com|Nolonga.com>" fst
+              | _ -> ""
+
 let formatForPublication deal= 
-    sprintf "<%s|%s>\nListed at %O for £%O\n%s\n%s" 
+    sprintf "<%s|%s>\nListed at %O for £%O\n%s" 
      deal.Link
      deal.Title 
      deal.Listed
      deal.Price
-     (match deal.ManufacturerCode with
-      | (fst :: []) -> fst
-      | (fst :: rst) -> sprintf "(%s)" <| String.concat "," deal.ManufacturerCode 
-      | _ -> "Unknown")
-     (match deal.AveragePrice with
-      | Some average -> sprintf "The average price for this on Nolonga is currently £%.2f" average
-      | None -> "")
+     <| addPriceInfo deal
