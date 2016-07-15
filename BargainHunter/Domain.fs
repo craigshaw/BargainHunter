@@ -7,12 +7,13 @@ open FSharp.Data
 
 type Domain =
 | Lego
-//| Gaming
+| Gaming
 
 type HUKDProvider = JsonProvider<"Data/example.json">
 type NolongaProvider = JsonProvider<"Data/nolonga.json">
 
-type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string; ManufacturerCode: string list; AveragePrice: decimal option }
+type Deal = { Title: string; Link: string; Price: decimal; Listed: DateTime; Category: string; 
+              ManufacturerCode: string list; PriceDetails: NolongaProvider.Root option }
 
 let unixTimeToDateTime (unixTime:int) =
     DateTimeOffset.FromUnixTimeSeconds(int64 unixTime).DateTime.ToLocalTime()
@@ -24,8 +25,8 @@ let dateTimeToUnixTime (dt:DateTime) =
 let (|SupportedDealDomain|_|) arg =
     if String.Compare("lego", arg, StringComparison.OrdinalIgnoreCase) = 0 then
         Some(Lego)
-//    else if String.Compare("gaming", arg, StringComparison.OrdinalIgnoreCase) = 0 then
-//        Some(Gaming)
+    else if String.Compare("gaming", arg, StringComparison.OrdinalIgnoreCase) = 0 then
+        Some(Gaming)
     else
         None
 
@@ -63,7 +64,7 @@ let getDeals filter codeResolver priceResolver key search lastSearchTime =
                                             Listed = unixTimeToDateTime i.Timestamp;
                                             Category = i.Category.Name;
                                             ManufacturerCode = [];
-                                            AveragePrice = None})
+                                            PriceDetails = None})
                             |> Seq.map (fun i -> codeResolver i)
                             |> Seq.map (fun i -> priceResolver i)
                             |> Seq.toList

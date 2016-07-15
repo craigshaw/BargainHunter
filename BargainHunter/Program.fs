@@ -47,8 +47,8 @@ let bootstrap domain =
     match domain with
     | Lego -> (getDeals Lego.dealFilter Lego.manufacturerCodeResolver Lego.priceResolver,
                publishDeals Lego.formatForPublication Lego.getPublicationIdentity)
-//    | Gaming -> (getDeals Gaming.dealFilter,
-//                 publishDeals Gaming.formatForPublication Gaming.getPublicationIdentity)
+    | Gaming -> (getDeals Gaming.dealFilter (fun d -> d) (fun d -> d),
+                 publishDeals Gaming.formatForPublication Gaming.getPublicationIdentity)
 
 let findDeals key search hook domain lastRunFile =
     let getDeals', publishDeals' = bootstrap domain

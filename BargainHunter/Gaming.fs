@@ -15,11 +15,9 @@ let dealFilter (deal:HUKDProvider.Item) =
     | Some _ -> true 
     | None -> false
 
-let formatForPublication (deal:HUKDProvider.Item) = 
+let formatForPublication deal = 
     sprintf "<%s|%s>\nListed at %O for £%O" 
-     deal.DealLink 
+     deal.Link 
      deal.Title 
-     (unixTimeToDateTime deal.Timestamp)
-     (match deal.Price with
-      | Some price -> price
-      | None -> 0.0m)
+     deal.Listed
+     deal.Price
