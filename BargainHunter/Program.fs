@@ -6,7 +6,7 @@ open Hukd
 open Slack
 open Lego
 
-let Version = "0.5.0"
+let Version = "0.6.0"
 let AppName = "BargainHunter"
 
 let ApplicationName =

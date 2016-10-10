@@ -51,15 +51,17 @@ let relativePercentageText percentageSaving =
 
 let addPriceInfo deal = 
     match deal.PriceDetails with
-    | Some details -> let percentageSaving = (1.0m - (deal.Price / details.PriceStats.AverageSalePrice)) * 100.0m
-                      sprintf "%s\n%s"
-                       <| averagePriceText details.ProductId details.PriceStats.AverageSalePrice
-                       <| relativePercentageText percentageSaving
+    | Some details -> match details.PriceStats.NumberOfResults with
+                      | 0 -> "There are no prices available for this product on <http://www.nolonga.com|Nolonga.com>"
+                      | n -> let percentageSaving = (1.0m - (deal.Price / details.PriceStats.AverageSalePrice)) * 100.0m
+                             sprintf "%s\n%s"
+                             <| averagePriceText details.ProductId details.PriceStats.AverageSalePrice
+                             <| relativePercentageText percentageSaving
     | None -> match deal.ManufacturerCode with
               | (fst :: []) -> sprintf "There is no record for this product (%s) on <http://www.nolonga.com|Nolonga.com>" fst
               | _ -> ""
 
-let formatForPublication deal= 
+let formatForPublication deal = 
     sprintf "<%s|%s>\nListed at %O for £%O\n%s" 
      deal.Link
      deal.Title 
